@@ -1,0 +1,43 @@
+name: Environment Approval
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build
+        run: echo Building code
+
+  deploy_Integration:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: integration
+    steps:
+      - name: test
+        run: echo deploy to environment Integration
+
+  deploy_QA:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - name: test
+        run: echo deploy to environment QA
+
+  deploy_UAT:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: uat
+    steps:
+      - name: test
+        run: echo deploy to environment UAT
+
+  deploy_PROD:
+    needs: [deploy_NonPROD]
+    runs-on: ubuntu-latest
+    environment: productiion
+    steps:
+      - name: test
+        run: echo deploy to environment Production
