@@ -1,0 +1,227 @@
+﻿@inject NavigationManager NavigationManager
+@inject OpenTriviaDbService OpenTriviaDbService
+@inject ILocalStorageService LocalStorage
+
+@page "/game/{CategoryId}"
+
+<SfToast ID="toast_default" @ref="toastObj" Timeout="3000">
+    <ToastPosition X="@ToastPosition"></ToastPosition>
+</SfToast>
+
+<section id="start" className="text-white text-center mb-5 container">
+    <SfCard ID="BasicCard">
+        <CardHeader Title=@category />
+        <CardContent>
+            <SfSpinner Size="40" Type="SpinnerType.Material" @bind-Visible="loading" />
+            @if (!loading)
+            {
+                <h4>@stats</h4>
+            }
+            @if (!loading && question is not null && answers is not null)
+            {
+                <p>@((MarkupString)question.QuestionText)</p>
+                @foreach (string? answer in answers)
+                {
+                    <SfRadioButton Name="question" Value="@answer" @bind-Checked="checkedValue"></SfRadioButton>@((MarkupString)answer)<br />
+                }
+            }
+        </CardContent>
+        <CardFooter>
+            <CardFooterContent>
+                @if (!gameEnded)
+                {
+                    <SfButton CssClass="e-btn e-outline e-primary" Disabled="@(string.IsNullOrEmpty(checkedValue))" @onclick="NextQuestion">Submit Answer</SfButton>
+                }
+                else
+                {
+                    if (!changeCategory)
+                    {
+                        <SfButton CssClass="e-btn e-outline e-primary" @onclick="PlayAgain">Play Again</SfButton>
+                    }
+
+                    <SfButton CssClass="e-btn e-outline e-primary" @onclick="ShowScores">Show Scores</SfButton>
+                    <SfButton CssClass="e-btn e-outline e-primary" @onclick="ChangeCategory">Change Category</SfButton>
+                }
+            </CardFooterContent>
+        </CardFooter>
+    </SfCard>
+</section>
+
+<style>
+    .e-card-header-title {
+        font-size: 40px !important;
+        font-style: italic;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string CategoryId { get; set; } = string.Empty;
+    private string category = string.Empty;
+    private string stats = "Question 1/10 - Your score: 0";
+    private int score = 0;
+    private int numberOfQuestions = 0;
+    private bool gameEnded = false;
+    private bool changeCategory = false;
+
+    SfToast? toastObj;
+    private const string ToastPosition = "Right";
+
+    private List<Score> categoryScores = new();
+
+    private Question[] questions = Array.Empty<Question>();
+    private bool loading = true;
+    private string checkedValue = string.Empty;
+    private List<TriviaCategory> TriviaCategories { get; set; } = new();
+    private Question? question = null;
+    private List<string>? answers = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        categoryScores = await LocalStorage.GetItemAsync<List<Score>>("scores") ?? new List<Score>();
+
+        // check session id
+        string sessionId = await LocalStorage.GetItemAsStringAsync("sessionId");
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            await OpenTriviaDbService.CreateSessionTokenAsync();
+            sessionId = OpenTriviaDbService.SessionToken;
+            await LocalStorage.SetItemAsStringAsync("sessionId", sessionId);
+        }
+        else
+        {
+            OpenTriviaDbService.SetSessionToken(sessionId);
+        }
+
+        TriviaCategories = await LocalStorage.GetItemAsync<List<TriviaCategory>>("triviaCategories") ?? new List<TriviaCategory>();
+        category = TriviaCategories.FirstOrDefault(x => x.Id == CategoryId)?.Name ?? string.Empty;
+
+        // read unanswered questions from localstorage
+        questions = await LocalStorage.GetItemAsync<Question[]>($"unansweredQuestions-{CategoryId}") ?? Array.Empty<Question>();
+        numberOfQuestions = questions.Length;
+
+        // get 10 questions
+        if (numberOfQuestions < 10)
+        {
+            Question[]? moreQuestions = await OpenTriviaDbService.GetQuestionsAsync(10 - numberOfQuestions, Convert.ToInt16(CategoryId), OpenTriviaDbEnums.QuestionType.MultiChoice, OpenTriviaDbEnums.Difficulty.Easy);
+            if (moreQuestions is not null)
+            {
+                questions = questions.Concat(moreQuestions).ToArray();
+            }
+        }
+
+        // store unanswered questions in localstorage
+        await LocalStorage.SetItemAsync($"unansweredQuestions-{CategoryId}", questions);
+
+        questions.Shuffle();
+        numberOfQuestions = questions.Length;
+        if (numberOfQuestions == 0)
+        {
+            gameEnded = true;
+            stats = "No questions found for this category. Please try another category.";
+            loading = false;
+            changeCategory = true;
+            if (TriviaCategories.Any(s => s.Id == CategoryId))
+            {
+                TriviaCategories.Remove(TriviaCategories.FirstOrDefault(s => s.Id == CategoryId)!);
+            }
+
+            await LocalStorage.SetItemAsync("triviaCategories", TriviaCategories);
+            return;
+        }
+
+        stats = $"Question 1/{numberOfQuestions} - Your score: 0";
+        /*
+         * TODO:
+         * - display all-time records
+         */
+        question = questions.FirstOrDefault() ?? new Question();
+        answers = GetAnswers(question);
+    
+        // spinner
+        loading = false;
+    }
+
+    private List<string> GetAnswers(Question questionToBeAnswered)
+    {
+        if (questionToBeAnswered.CorrectAnswer is null)
+        {
+            return new List<string>();
+        }
+        
+        List<string> answersToBeShuffled = new() { questionToBeAnswered.CorrectAnswer };
+        answersToBeShuffled.AddRange(questionToBeAnswered.IncorrectAnswers);
+        answersToBeShuffled.Shuffle();
+        return answersToBeShuffled;
+    }
+
+    private async Task NextQuestion()
+    {
+        Score categoryScore = categoryScores.FirstOrDefault(s => s.CategoryName == category) ?? new Score { CategoryName = category, Correct = 0, Total = 0 };
+
+        // check answer
+        if (question?.CorrectAnswer == checkedValue)
+        {
+            // update score
+            score++;
+            toastObj!.Content = "Correct!";
+            categoryScore.Correct++;
+        }
+        else
+        {
+            toastObj!.Content = $"Incorrect!<br />The correct answer is: \"{question?.CorrectAnswer}\"";
+        }
+
+        // show toast
+        await toastObj.ShowAsync();
+
+        categoryScore.Total++;
+        if (categoryScores.Any(s => s.CategoryName == category))
+        {
+            categoryScores.Remove(categoryScores.FirstOrDefault(s => s.CategoryName == category)!);
+        }
+
+        categoryScores.Add(categoryScore);
+        await LocalStorage.SetItemAsync("scores", categoryScores);
+
+        // get next question
+        if (questions.Length == 1)
+        {
+            // end game
+            question = null;
+            questions = Array.Empty<Question>();
+            stats = $"Your score: {score}/{numberOfQuestions}";
+            gameEnded = true;
+        }
+        else
+        {
+            question = questions[1];
+            answers = GetAnswers(question);
+            questions = questions.Skip(1).ToArray();
+            stats = $"Question {numberOfQuestions - questions.Length + 1}/{numberOfQuestions} - Your score: {score}";
+        }
+
+        // store in localstorage unanswered questions
+        await LocalStorage.SetItemAsync($"unansweredQuestions-{CategoryId}", questions);
+        checkedValue = string.Empty;
+    }
+
+    private void ShowScores() => NavigationManager.NavigateTo("/scores");
+
+    private async Task PlayAgain()
+    {
+        loading = true;
+        gameEnded = false;
+        score = 0;
+        questions = await OpenTriviaDbService.GetQuestionsAsync(10, Convert.ToInt16(CategoryId), OpenTriviaDbEnums.QuestionType.MultiChoice, OpenTriviaDbEnums.Difficulty.Easy);
+        numberOfQuestions = questions.Length;
+        stats = $"Question 1/{numberOfQuestions} - Your score: 0";
+        question = questions.FirstOrDefault() ?? new Question();
+        answers = GetAnswers(question);
+        loading = false;
+    }
+
+    private void ChangeCategory() => NavigationManager.NavigateTo("/");
+}

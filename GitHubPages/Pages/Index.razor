@@ -1,0 +1,42 @@
+﻿@inject NavigationManager NavigationManager
+
+@page "/"
+
+<PageTitle>Trivia</PageTitle>
+
+<section id="start" className="text-white text-center mb-5 container">
+    <SfCard ID="BasicCard">
+        <CardHeader Title="Trivia Game" />
+        <CardContent>
+            <p>Do you a want to test your trivia knowledge? Put it to the test and see how much you really know!</p>
+            <Categories CategorySelected="HandleCategorySelected"></Categories>
+        </CardContent>
+        <CardFooter>
+            <CardFooterContent>
+                <SfButton CssClass="e-btn e-outline e-primary" Disabled="@(string.IsNullOrEmpty(categoryId))" @onclick="StartGame">Start Game</SfButton>
+                <SfButton CssClass="e-btn e-outline e-primary" @onclick="ShowScores">Show Scores</SfButton>
+            </CardFooterContent>
+        </CardFooter>
+    </SfCard>
+</section>
+
+<style>
+    .e-card-header-title {
+        font-size: 40px !important;
+        font-style: italic;
+    }
+</style>
+
+@code
+{
+    private string categoryId = string.Empty;
+
+    private void HandleCategorySelected(string selectedCategory)
+    {
+        categoryId = selectedCategory;
+    }
+
+    private void StartGame() => NavigationManager.NavigateTo($"/game/{categoryId}");
+
+    private void ShowScores() => NavigationManager.NavigateTo("/scores");
+}

@@ -1,0 +1,79 @@
+﻿@using Syncfusion.Blazor.DropDowns
+@using PartyTriviaShared.Models
+@using PartyTriviaShared.Services
+@using Newtonsoft.Json
+
+@inject OpenTriviaDbService OpenTriviaDbService
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<div class="col-lg-12">
+    <div class="col-lg-8 control-section sb-property-border">
+        <div class="control-wrapper">
+            <label class="category-label">Select a Category</label>
+            <SfDropDownList TValue="string" TItem="TriviaCategory" PopupHeight="230px" @bind-Value="@SelectedCategory" Placeholder="Select a categogy" DataSource="@TriviaCategories">
+                <DropDownListEvents TItem="TriviaCategory" TValue="string" ValueChange="OnChange"></DropDownListEvents>
+                <DropDownListFieldSettings Text="Name" Value="Id"></DropDownListFieldSettings>
+            </SfDropDownList>
+        </div>
+    </div>
+</div>
+<style>
+    .control-section {
+        min-height: 50px;
+    }
+
+    .control-wrapper {
+        max-width: 250px;
+        margin: 5px;
+        padding: 0px 0px 0px;
+    }
+
+    .category-label {
+        font-size: 14px;
+        margin-bottom: 6px;
+        font-weight: bold;
+    }
+
+    .property-panel-section .property-value {
+        padding: 5px 0px 10px;
+        font-size: 14px;
+    }
+
+    .property-panel-content {
+        padding: 0px 0px 15px 0px;
+    }
+
+        .property-panel-content:last-child {
+            padding: 0px 0px 40px 0px;
+        }
+</style>
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> CategorySelected { get; set; }
+
+    private List<TriviaCategory> TriviaCategories { get; set; } = new();
+    private string? SelectedCategory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        TriviaCategories = await LocalStorage.GetItemAsync<List<TriviaCategory>>("triviaCategories") ?? new List<TriviaCategory>();
+        if (TriviaCategories.Count == 0)
+        {
+            TriviaCategory[]? newTriviaCategories = await OpenTriviaDbService.GetCategoriesAsync();
+            if (newTriviaCategories != null)
+            {
+                TriviaCategories = newTriviaCategories.OrderBy(s => s.Name).ToList();
+                await LocalStorage.SetItemAsync("triviaCategories", TriviaCategories);
+            }
+        }
+    }
+
+    public void OnChange(ChangeEventArgs<string, TriviaCategory> args)
+    {
+        CategorySelected.InvokeAsync(args.ItemData?.Id ?? string.Empty);
+    }
+}
