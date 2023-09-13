@@ -1,0 +1,17 @@
+name: Environment Variables Example
+
+on:
+  push:
+    paths:
+      - '.github/workflows/env-var.yml' 
+  workflow_dispatch:
+
+env:
+  HANDLE: 'bling214'
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo hello $HANDLE
