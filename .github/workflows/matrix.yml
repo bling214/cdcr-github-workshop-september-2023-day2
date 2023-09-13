@@ -1,0 +1,32 @@
+name: Matrix Jobs
+
+on:
+  push:
+    paths:  
+      - '.github/workflows/matrix.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build
+        run: echo Building code
+
+  test_matrix:
+    needs: [build]
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        version: [10, 12]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: test
+        run: echo test of version ${{ matrix.version }} on  ${{ matrix.os }}
+
+  deploy:
+    needs: [test_matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo deploy
