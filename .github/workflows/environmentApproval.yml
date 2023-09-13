@@ -19,7 +19,7 @@ jobs:
         run: echo deploy to environment Integration
 
   deploy_QA:
-    needs: [build]
+    needs: [deploy_Integration]
     runs-on: ubuntu-latest
     environment: qa
     steps:
@@ -27,7 +27,7 @@ jobs:
         run: echo deploy to environment QA
 
   deploy_UAT:
-    needs: [build]
+    needs: [deploy_QA]
     runs-on: ubuntu-latest
     environment: uat
     steps:
@@ -35,7 +35,7 @@ jobs:
         run: echo deploy to environment UAT
 
   deploy_PROD:
-    needs: [deploy_NonPROD]
+    needs: [deploy_UAT]
     runs-on: ubuntu-latest
     environment: productiion
     steps:
