@@ -1,0 +1,20 @@
+name: Conditionals
+
+on:
+  workflow_dispatch:
+    inputs:
+      runstep:
+        description: "Run the optional step?"
+        required: true
+        type: boolean
+        default: true
+        
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup
+        run: echo setup ${{ github.event.inputs.runstep }}
+      - name: optional
+        run: echo optional step
+        if:  ${{ github.event.inputs.runstep  == 'true' }}
