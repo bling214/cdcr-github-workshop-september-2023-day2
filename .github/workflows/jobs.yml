@@ -1,0 +1,32 @@
+name: Multiple Jobs
+
+on:
+  push:
+    paths:  
+      - '.github/workflows/jobs.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build
+        run: echo Building code
+  test-linux:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo test  
+  test-win:
+    needs: [build]
+    runs-on: windows-latest
+    steps:
+      - name: test
+        run: echo test  
+  deploy:
+    needs: [test-linux, test-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo deploy
