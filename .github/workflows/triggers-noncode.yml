@@ -1,0 +1,24 @@
+name: Issue Trigger
+
+# There are a huge number of different events you can trigger off of
+#   see https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+on:
+  issues: 
+    types: [opened]
+  
+jobs: 
+  new-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: |
+          echo new issue created with title $ISSUE
+        env:
+          ISSUE: ${{ github.event.issue.title }}
+      - uses: devops-actions/issue-comment-tag@v0.1.0
+        with:
+          team: bling214
+          issue: ${{ github.event.issue.number }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
