@@ -1,0 +1,30 @@
+name: Composite Action Example
+
+on:
+  push: 
+    paths:
+    - '.github/workflows/composite.yml'
+  workflow_dispatch:
+  
+env:
+  ACR-NAME: bling214containerregistry
+
+jobs:
+  main:  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Clone Code
+      uses: actions/checkout@v2
+    
+    - name: Build code
+      run: echo build code
+    
+    - name: Deploy ACR
+      id: deploy-acr
+      uses: './.github/workflows/composite/sample'
+      with:
+        acr-name: ${{ env.ACR-NAME }}
+       
+    - name: Publish Container
+      run: echo push container to ${{steps.deploy-acr.outputs.url}}
