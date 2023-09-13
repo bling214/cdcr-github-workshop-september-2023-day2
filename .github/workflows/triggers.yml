@@ -1,0 +1,52 @@
+name: Triggers Example
+
+on:
+  push:
+    paths:
+      - '.github/workflows/triggers.yml*' # * is 0 or more of any character (except /). ** is 0 or more anything See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+    # Can't combine paths + paths_ignore or othe similar combinations
+    #paths-ignore:
+    #  - '.github/workflows/ignoreme'
+    branches:
+      - main
+      - 'feature/**' 
+      - '!feature/norelease' # the ! negates
+    #branches-ignore:
+    #  - 'feature/norelease'
+    #tags:
+    #tags-ignore:
+  pull_request: 
+    branches: [main]
+  #schedule:
+  #  - cron: '5 4 3 12 *' #4:05 am on 12/3
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+        - info
+        - warning
+        - debug 
+      print_tags:
+        description: 'True to print to STDOUT'
+        required: true 
+        type: boolean 
+      tags:
+        description: 'Test scenario tags'
+        required: true 
+        type: string
+      environment:
+        description: 'Environment to run tests against'
+        type: environment
+        required: false 
+
+jobs:
+  trigger-example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: echo hello
+      
