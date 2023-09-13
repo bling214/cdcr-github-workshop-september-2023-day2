@@ -37,7 +37,7 @@ jobs:
   deploy_PROD:
     needs: [deploy_UAT]
     runs-on: ubuntu-latest
-    environment: productiion
+    environment: production
     steps:
       - name: test
         run: echo deploy to environment Production
