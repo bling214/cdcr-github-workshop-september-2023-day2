@@ -1,8 +1,8 @@
 ---
 name: Workshop Template
-about: Testing out templates
+about: Testing out templates during workshop
 title: 'Workshop - '
-labels: backend
+labels: documentation
 assignees: bling214
 
 ---
