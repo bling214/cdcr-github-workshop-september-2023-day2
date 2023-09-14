@@ -3,7 +3,7 @@ name: Workshop Template
 about: Testing out templates
 title: 'Workshop - '
 labels: backend
-assignees: glensouza
+assignees: bling214
 
 ---
 
